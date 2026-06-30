@@ -2,10 +2,10 @@
 # Flash a Mellow LLL Plus (Katapult, NO DFU) over USB.
 #
 # Usage:
-#   ./flash-lll.sh <usb-Klipper_stm32f072xb_<UID>-if00 path> [path/to/klipper.bin]
+#   ./flash-lll.sh <usb-Klipper_stm32f072xb_xxxxxxxxxxxx-if00 path> [path/to/klipper.bin]
 #
 # Example:
-#   ./flash-lll.sh /dev/serial/by-id/usb-Klipper_stm32f072xb_3C003A000957465331323720-if00
+#   ./flash-lll.sh /dev/serial/by-id/usb-Klipper_stm32f072xb_xxxxxxxxxxxx-if00
 #
 # It uses Klipper's own Python (~/klippy-env) on purpose: that virtualenv already
 # ships pyserial, so flashtool.py works without "pyserial not found" and without

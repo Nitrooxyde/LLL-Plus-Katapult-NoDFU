@@ -1,4 +1,4 @@
-# 🚀 Flash the Mellow LLL Plus over USB — no DFU, no reset button
+# 🚀 Flash the Mellow LLL Plus over USB — no DFU for updates
 
 ![MCU](https://img.shields.io/badge/MCU-STM32F072CB-green)
 ![Bootloader](https://img.shields.io/badge/bootloader-Katapult-blue)
@@ -10,7 +10,7 @@ Install [Katapult](https://github.com/Arksine/katapult) *once* (a single DFU), a
 
 This guide is **board-specific and tested on real hardware**, and it fixes the two things that actually trip people up on the LLL Plus:
 
-> **Gotcha #1 — the reset trick doesn't work here.** The popular LLL Plus guides tell you to *"double-tap the reset button to enter Katapult."* The LLL Plus has **no usable reset button**, so there's nothing to double-tap and that option does nothing useful here. You don't need it: `flashtool.py` reboots the running firmware into the bootloader **over USB**, no button at all.
+> **Gotcha #1 — don't count on the double-reset trick here.** The popular LLL Plus guides tell you to *"double-tap the reset button to enter Katapult."* On this board that double-reset entry doesn't reliably drop into the bootloader (even with it enabled in Katapult), so don't rely on it. You don't need it anyway: `flashtool.py` reboots the running firmware into the bootloader **over USB**, no button at all.
 >
 > **Gotcha #2 — "I still need DFU" is usually a missing `pyserial`.** When `flashtool.py` is run with the **system** Python (which has no `pyserial`), it errors out — and people wrongly conclude Katapult is useless and reach back for the DFU jumper. Run it with **Klipper's own Python** (`~/klippy-env/bin/python`, which already ships `pyserial`) and it just works. *(This is exactly what Mellow's own docs do for non-Fly hosts; the tool itself also tells you to `apt install python3-serial`.)*
 
@@ -42,9 +42,11 @@ Read live from a working LLL Plus (`~/klipper/.config`, `~/katapult/.config`) �
 | Comms interface | **USB** (PA11 / PA12) |
 | Katapult base address | `0x08000000` |
 | Klipper application start | `0x08002000` (**8 KiB** offset) |
-| Klipper USB ID (running) | `1d50:614e` → `/dev/serial/by-id/usb-Klipper_stm32f072xb_<UID>-if00` |
-| Katapult USB ID (in bootloader) | `1d50:6177` → `/dev/serial/by-id/usb-katapult_stm32f072xb_<UID>-if00` |
+| Klipper USB ID (running) | `1d50:614e` → `/dev/serial/by-id/usb-Klipper_stm32f072xb_xxxxxxxxxxxx-if00` |
+| Katapult USB ID (in bootloader) | `1d50:6177` → `/dev/serial/by-id/usb-katapult_stm32f072xb_xxxxxxxxxxxx-if00` |
 | STM32 ROM-DFU USB ID (first install only) | `0483:df11` |
+
+> `xxxxxxxxxxxx` is your board's own unique chip ID — yours will differ. Run `ls /dev/serial/by-id/` to read it.
 
 ---
 
@@ -64,13 +66,13 @@ This is an independent, community-made guide. It is **not affiliated with, autho
 
 - A Klipper host (Raspberry Pi, etc.) with the `~/klipper` tree and the `~/klippy-env` virtualenv (a standard Klipper install).
 - `dfu-util` **for the one-time install only**: `sudo apt install dfu-util`.
-- Physical access to the board's **BOOT0** pads/button **once** (to install Katapult). After that, never again.
+- Physical access to the board's **BOOT** and **RESET** buttons **once** (to install Katapult). After that, never again.
 
 ---
 
 ## Part 1 — Install Katapult (one time)
 
-> You only do this **once per board.** It's the only step that needs the BOOT0 jumper.
+> You only do this **once per board.** It's the only step that needs the buttons.
 
 ### 1.1 Build Katapult
 
@@ -89,10 +91,10 @@ Processor model .......................... STM32F072
 Clock Reference .......................... 8 MHz crystal
 Application start offset ................. 8KiB offset          # -> app lands at 0x08002000
 Communication interface .................. USB (on PA11/PA12)
-[ ] Support bootloader entry on rapid double click of reset    # LEAVE OFF (see below)
+[ ] Support bootloader entry on rapid double click of reset    # optional; not the entry method you'll use here
 ```
 
-> ⚠️ **Leave "double click of reset" OFF on the LLL Plus.** The board has no usable reset button, so double-reset detection can never trigger and adds nothing here — the tested configuration leaves it off. You'll enter the bootloader over USB instead (Part 3), which needs no button.
+> ⚠️ **Don't rely on "double click of reset" to enter Katapult on the LLL Plus.** On this board it doesn't reliably drop into the bootloader, so it's not the entry method you'll use either way — you'll enter the bootloader over USB with `flashtool.py -r` (Part 3), which needs no button.
 
 ```bash
 make clean && make
@@ -101,7 +103,7 @@ make clean && make
 
 ### 1.2 Back up the current firmware, then flash Katapult via DFU
 
-Put the board in the STM32 ROM bootloader: **hold BOOT0** (jumper/button) and re-plug the USB cable (this board has no reset button). Confirm it:
+Put the board in the STM32 ROM bootloader: **hold BOOT**, tap **RESET**, release RESET, then release BOOT. Confirm it:
 
 ```bash
 lsusb | grep 0483:df11        # "STMicroelectronics STM Device in DFU Mode"
@@ -123,10 +125,10 @@ Re-plug USB and confirm Katapult enumerates:
 
 ```bash
 ls /dev/serial/by-id/ | grep usb-katapult_stm32f072xb
-# -> usb-katapult_stm32f072xb_<UID>-if00
+# -> usb-katapult_stm32f072xb_xxxxxxxxxxxx-if00
 ```
 
-That was the last time you'll touch the jumper.
+That was the last time you'll need the buttons.
 
 ---
 
@@ -170,7 +172,7 @@ Find the board's current (Klipper) serial path:
 
 ```bash
 ls /dev/serial/by-id/ | grep usb-Klipper_stm32f072xb
-# e.g. usb-Klipper_stm32f072xb_3C003A000957465331323720-if00
+# e.g. usb-Klipper_stm32f072xb_xxxxxxxxxxxx-if00
 ```
 
 ### The one command that matters
@@ -179,7 +181,7 @@ Use **Klipper's Python**, not the system one — it already has `pyserial`:
 
 ```bash
 ~/klippy-env/bin/python ~/katapult/scripts/flashtool.py \
-    -d /dev/serial/by-id/usb-Klipper_stm32f072xb_<UID>-if00 \
+    -d /dev/serial/by-id/usb-Klipper_stm32f072xb_xxxxxxxxxxxx-if00 \
     -f ~/klipper/out/klipper.bin
 ```
 
@@ -197,18 +199,18 @@ Done. The board is running your new firmware and never left its socket.
 ```bash
 # 1) ask the running Klipper to reboot into Katapult, then exit
 ~/klippy-env/bin/python ~/katapult/scripts/flashtool.py \
-    -d /dev/serial/by-id/usb-Klipper_stm32f072xb_<UID>-if00 -r
+    -d /dev/serial/by-id/usb-Klipper_stm32f072xb_xxxxxxxxxxxx-if00 -r
 
 # 2) the serial path changes to usb-katapult_... — grab it and flash
 ls /dev/serial/by-id/ | grep usb-katapult_stm32f072xb
 ~/klippy-env/bin/python ~/katapult/scripts/flashtool.py \
-    -d /dev/serial/by-id/usb-katapult_stm32f072xb_<UID>-if00 \
+    -d /dev/serial/by-id/usb-katapult_stm32f072xb_xxxxxxxxxxxx-if00 \
     -f ~/klipper/out/klipper.bin
 ```
 The `/dev/serial/by-id/` name **changes** between the steps: `usb-Klipper_…` while Klipper runs, `usb-katapult_…` once it's in the bootloader. The one-shot form above hides this for you.
 </details>
 
-There's a convenience wrapper in this repo: [`flash-lll.sh`](flash-lll.sh) — `./flash-lll.sh /dev/serial/by-id/usb-Klipper_stm32f072xb_<UID>-if00`.
+There's a convenience wrapper in this repo: [`flash-lll.sh`](flash-lll.sh) — `./flash-lll.sh /dev/serial/by-id/usb-Klipper_stm32f072xb_xxxxxxxxxxxx-if00`.
 
 ---
 
@@ -247,11 +249,11 @@ In Klipper, `FIRMWARE_RESTART`, then check `klippy.log` — you'll see your buil
 | Symptom | Cause | Fix |
 |---|---|---|
 | `FlashError: The pyserial python package was not found` | system Python has no `pyserial` | run flashtool with `~/klippy-env/bin/python` (or `sudo apt install python3-serial`) |
-| "Just double-tap reset" does nothing | LLL Plus has **no usable reset button**; double-reset is the wrong path here | don't use double-reset — flash with `flashtool.py -r` over USB (Part 3) |
+| Double-tap reset doesn't enter Katapult | double-reset entry isn't reliable on this board | use `flashtool.py -r` over USB (Part 3) instead |
 | `flashtool.py -r` does nothing / "timed out" | Klipper not built with the 8 KiB offset, **or** the host still owns the port | confirm the Klipper build is the 8 KiB-offset one; `sudo systemctl stop klipper` first |
 | "Device is not Katapult, exiting…" | board re-enumerated as something else | re-run the flash against the `usb-katapult_…` path once it appears |
 | Board dead after first install | Klipper flashed to the wrong base | rebuild Klipper with **8KiB bootloader** offset and re-flash |
-| Last-resort recovery | bootloader unreachable over USB | re-enter ROM DFU (hold BOOT0) and restore `~/lll_factory_backup.bin` to `0x08000000`, or re-flash Katapult |
+| Last-resort recovery | bootloader unreachable over USB | re-enter ROM DFU (hold BOOT, tap RESET) and restore `~/lll_factory_backup.bin` to `0x08000000`, or re-flash Katapult |
 
 > Over native USB the `-b/--baud` flag is ignored (that's for UART). `-q/-u/-i` are CAN-only — not used here.
 
@@ -259,7 +261,7 @@ In Klipper, `FIRMWARE_RESTART`, then check `klippy.log` — you'll see your buil
 
 ## Credits & prior work
 
-This guide was researched, written, and tested with **Claude** (Anthropic's Claude Code). **None of the techniques here are original to this guide** — the over-USB (no-DFU) Katapult flash and the `pyserial`/`klippy-env` tip are already documented in Katapult's own README, Mellow's docs, the community notes below, and in the companion firmware repo. This guide's only contribution is **consolidating them into one tested, LLL-Plus-specific walkthrough** that skips the double-reset path (which doesn't work on this board) and explains the `pyserial` gotcha plainly.
+This guide was researched, written, and tested with **Claude** (Anthropic's Claude Code). **None of the techniques here are original to this guide** — the over-USB (no-DFU) Katapult flash and the `pyserial`/`klippy-env` tip are already documented in Katapult's own README, Mellow's docs, the community notes below, and in the companion firmware repo. This guide's only contribution is **consolidating them into one tested, LLL-Plus-specific walkthrough** that flags the unreliable double-reset path and explains the `pyserial` gotcha plainly.
 
 - **Katapult** & `flashtool.py` — [Arksine/katapult](https://github.com/Arksine/katapult)
 - **Klipper** — [Klipper3d](https://www.klipper3d.org/)
