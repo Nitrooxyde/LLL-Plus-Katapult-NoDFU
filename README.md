@@ -10,7 +10,7 @@ Install [Katapult](https://github.com/Arksine/katapult) *once* (a single DFU), a
 
 This guide is **board-specific and tested on real hardware**, and it fixes the two things that actually trip people up on the LLL Plus:
 
-> **Gotcha #1 — don't count on the double-reset trick here.** The popular LLL Plus guides tell you to *"double-tap the reset button to enter Katapult."* On this board that double-reset entry doesn't reliably drop into the bootloader (even with it enabled in Katapult), so don't rely on it. You don't need it anyway: `flashtool.py` reboots the running firmware into the bootloader **over USB**, no button at all.
+> **Gotcha #1 — otherwise you'd have to open the case.** The LLL Plus *does* have BOOT and RESET buttons, but they sit **inside the case** — reaching them to enter DFU means taking the front face off. Fine once; a chore for every update; and across several buffers (a multicolor build) you just won't bother. *(Double-tap reset would skip DFU, but it's unreliable on this board — and the button's inside anyway.)* With Katapult, `flashtool.py -r` flashes over USB with the lid shut: install once, never open it again.
 >
 > **Gotcha #2 — "I still need DFU" is usually a missing `pyserial`.** When `flashtool.py` is run with the **system** Python (which has no `pyserial`), it errors out — and people wrongly conclude Katapult is useless and reach back for the DFU jumper. Run it with **Klipper's own Python** (`~/klippy-env/bin/python`, which already ships `pyserial`) and it just works. *(This is exactly what Mellow's own docs do for non-Fly hosts; the tool itself also tells you to `apt install python3-serial`.)*
 
