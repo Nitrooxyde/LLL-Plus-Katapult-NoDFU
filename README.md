@@ -5,6 +5,10 @@
 ![Flashing](https://img.shields.io/badge/flashing-no--DFU%20over%20USB-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
+> **📌 Firmware to pair with this guide:** [Mellow-LLL-Plus-Klipper-Firmware](https://github.com/Nitrooxyde/Mellow-LLL-Plus-Klipper-Firmware)
+> (minimal, autonomous-only) or its successor [Mellow-LLL-Plus-Canonical](https://github.com/Nitrooxyde/Mellow-LLL-Plus-Canonical)
+> (full host control, ships a prebuilt binary — flashed with exactly this no-DFU flow).
+
 **Flash your Mellow FLY *LLL Buffer Plus* over a plain USB cable.**
 Install [Katapult](https://github.com/Arksine/katapult) *once* (a single DFU), and every future Klipper update is one command over the USB cable that's already plugged in — no case opening, no jumper, no reset dance.
 
