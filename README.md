@@ -166,6 +166,26 @@ make clean && make
 
 This is the part you repeat forever. No jumper, no button, just USB.
 
+### First flash, right after Part 1 (no Klipper on the board yet)
+
+Straight after Part 1 the board is still sitting in Katapult: it shows up as `usb-katapult_…` and there is **no `usb-Klipper_…` path yet**. Flash Klipper directly to that Katapult path:
+
+```bash
+ls /dev/serial/by-id/ | grep usb-katapult_stm32f072xb
+# -> usb-katapult_stm32f072xb_xxxxxxxxxxxx-if00
+
+~/klippy-env/bin/python ~/katapult/scripts/flashtool.py \
+    -d /dev/serial/by-id/usb-katapult_stm32f072xb_xxxxxxxxxxxx-if00 \
+    -f ~/klipper/out/klipper.bin
+
+ls /dev/serial/by-id/ | grep usb-Klipper_stm32f072xb
+# -> usb-Klipper_stm32f072xb_xxxxxxxxxxxx-if00   (the board now runs Klipper)
+```
+
+You do this once. From then on the board runs Klipper, and every update is the section below. *(Thanks to NikosSprocket for catching the missing first-flash case — [issue #1](../../issues/1).)*
+
+### Every update after that (Klipper already running)
+
 Stop Klipper so it releases the serial port:
 
 ```bash
